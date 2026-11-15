@@ -1,6 +1,7 @@
 import { isValidLine } from "./line-selection";
 
-export const MAX_CODE_LENGTH = 30_000;
+import { MAX_CODE_LENGTH } from "./python/constants";
+export { MAX_CODE_LENGTH } from "./python/constants";
 
 export interface MissionDraft {
   version: 1;

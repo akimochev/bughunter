@@ -1935,3 +1935,73 @@ h3 {
     padding-inline: 22px;
   }
 }
+.python-output {
+  padding: 24px;
+  font-size: 12px;
+  color: #acb7d0;
+}
+.execution-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #c4aff2;
+  margin-bottom: 14px;
+}
+.execution-status h3 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.python-output[data-status="success"] .execution-status {
+  color: #8fdab4;
+}
+.python-output[data-status="error"] .execution-status,
+.python-output[data-status="timeout"] .execution-status {
+  color: #f4a3a3;
+}
+.python-output > p {
+  margin-block: 12px;
+  line-height: 1.8;
+}
+.execution-value {
+  min-width: 0;
+  margin-block: 16px;
+}
+.execution-value > span,
+.execution-duration {
+  font-size: 10px;
+  color: var(--muted);
+}
+.python-output pre {
+  max-height: 260px;
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 11px/1.8 var(--font-code);
+  padding: 12px;
+  background: #0e1626;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  margin: 8px 0 0;
+  color: #d2dbed;
+}
+.execution-error {
+  color: #edaaaa;
+  margin-block: 16px;
+}
+.execution-error strong {
+  font: 12px var(--font-code);
+}
+.execution-error p {
+  margin-top: 9px;
+}
+.execution-stale {
+  border-left: 2px solid #a087ce;
+  padding-left: 12px;
+  color: #c1addf;
+}
+@media (max-width: 520px) {
+  .python-output {
+    padding: 20px 16px;
+  }
+}

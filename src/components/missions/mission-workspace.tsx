@@ -11,10 +11,13 @@ import {
   RotateCcw,
   Send,
   Target,
+  Square,
 } from "lucide-react";
 import { createDraftStore, MAX_CODE_LENGTH } from "@/lib/mission-draft";
 import { lineSelectionFeedback } from "@/lib/line-selection";
 import type { JsonValue, LearnerMission } from "@/types/mission";
+import { usePythonRunner } from "@/lib/python/use-python-runner";
+import { PythonOutput } from "./python-output";
 
 const PythonEditor = dynamic(
   () => import("@/components/editor/python-editor"),
@@ -48,6 +51,8 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
   const [simpleEditor, setSimpleEditor] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const sourceLines = content.starterCode.split("\n");
+  const execution = usePythonRunner();
+  const firstExample = content.publicTests[0];
 
   return (
     <div className="workspace-grid">
@@ -279,12 +284,32 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
           <div className="editor-actions">
             <button
               className="button button-secondary"
-              disabled
+              disabled={
+                storage === "pending" || execution.busy || !firstExample
+              }
               aria-describedby="runner-notice"
+              onClick={() => {
+                setMode("edit");
+                execution.run({
+                  requestId: crypto.randomUUID(),
+                  sourceCode: draft.code,
+                  functionName: mission.functionName,
+                  args: firstExample.args,
+                });
+              }}
             >
               <Play size={16} />
               Запустить код
             </button>
+            {execution.busy && (
+              <button
+                className="button button-secondary"
+                onClick={execution.cancel}
+              >
+                <Square size={15} />
+                Отменить запуск
+              </button>
+            )}
             <button
               className="button button-primary"
               disabled
@@ -295,25 +320,24 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
             </button>
           </div>
           <p id="runner-notice" className="runner-notice">
-            Проверка кода будет добавлена на этапе 3.
+            Запуск использует текущий черновик и первый пример. Автоматическая
+            проверка решения появится на следующем этапе.
           </p>
         </section>
         <section className="panel results-panel">
           <div className="panel-title">
             <FlaskConical size={18} />
-            <h2>Результаты проверки</h2>
+            <h2>Результат запуска</h2>
           </div>
-          <div className="results-placeholder">
-            <span className="empty-terminal">&gt;_</span>
-            <div>
-              <h3>Проверка Python пока недоступна</h3>
-              <p>
-                Можно исследовать исходный код, выбрать строку и сохранить
-                исправление. Результаты тестов появятся после подключения
-                запуска Python.
-              </p>
-            </div>
-          </div>
+          <PythonOutput
+            phase={execution.phase}
+            request={execution.request}
+            result={execution.result}
+            codeChanged={
+              execution.request !== null &&
+              execution.request.sourceCode !== draft.code
+            }
+          />
         </section>
       </div>
     </div>
