@@ -83,6 +83,7 @@ export class PythonRunner {
   run(
     request: PythonRunRequest,
     onPhase: (phase: RunnerPhase) => void = () => {},
+    executionTimeoutMs: number = this.executionTimeoutMs,
   ): Promise<PythonRunResult> {
     this.cancel();
     const invalid = this.validate(request);
@@ -151,9 +152,9 @@ export class PythonRunner {
                 hasReturnValue: false,
                 errorType: "TimeoutError",
                 errorMessage:
-                  "Код выполнялся дольше 5 секунд. Проверь, завершаются ли циклы, и попробуй снова.",
+                  "Превышен лимит выполнения Python. Проверь, завершаются ли циклы, и попробуй снова.",
               }),
-            this.executionTimeoutMs,
+            executionTimeoutMs,
           );
           onPhase("running");
           this.post(active, { type: "execute", request });

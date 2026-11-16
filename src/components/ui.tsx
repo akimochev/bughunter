@@ -10,11 +10,13 @@ import {
   ShoppingBag,
   Timer,
   CornerDownLeft,
+  LockKeyhole,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { MissionSummary, MissionTier } from "@/types/mission";
 import { tiers } from "@/content/mission-tiers";
+import { StarRating } from "@/components/progress/star-rating";
 
 export function Brand() {
   return (
@@ -54,13 +56,23 @@ const missionIcons: LucideIcon[] = [
   GitBranch,
 ];
 
-export function MissionCard({ mission }: { mission: MissionSummary }) {
+export function MissionCard({
+  mission,
+  state,
+}: {
+  mission: MissionSummary;
+  state?: {
+    loading: boolean;
+    locked: boolean;
+    reason: string;
+    stars: number;
+    xp: number;
+  };
+}) {
   const Icon = missionIcons[mission.id - 1] ?? Bug;
-  return (
-    <Link
-      href={`/missions/${mission.slug}`}
-      className={`mission-card card-${mission.tier}`}
-    >
+  const className = `mission-card card-${mission.tier}${state?.locked ? " mission-card-locked" : ""}${state?.stars ? " mission-card-completed" : ""}`;
+  const body = (
+    <>
       <div className="mission-card-top">
         <span className="mission-icon">
           <Icon size={24} strokeWidth={1.6} />
@@ -68,15 +80,45 @@ export function MissionCard({ mission }: { mission: MissionSummary }) {
         <span className="case-number">
           ДЕЛО {String(mission.id).padStart(2, "0")}
         </span>
-        <ArrowUpRight className="card-arrow" size={19} />
+        {state?.locked ? (
+          <LockKeyhole className="card-arrow" size={19} />
+        ) : (
+          <ArrowUpRight className="card-arrow" size={19} />
+        )}
       </div>
       <TierBadge tier={mission.tier} />
       <h3>{mission.title}</h3>
       <p>{mission.description}</p>
+      {state?.locked && <p className="lock-reason">{state.reason}</p>}
+      {Boolean(state?.stars) && (
+        <div className="card-reward">
+          <StarRating stars={state!.stars} />
+          <span>{state!.xp} XP</span>
+        </div>
+      )}
       <div className="mission-card-bottom">
         <span>{mission.topic}</span>
-        <span className="preview-label">Открыть дело</span>
+        <span className="preview-label">
+          {state?.loading
+            ? "Загрузка…"
+            : state?.locked
+              ? "Заблокировано"
+              : state?.stars
+                ? "Дело пройдено"
+                : "Открыть дело"}
+        </span>
       </div>
+    </>
+  );
+  if (state?.loading || state?.locked)
+    return (
+      <article className={className} aria-busy={state.loading}>
+        {body}
+      </article>
+    );
+  return (
+    <Link href={`/missions/${mission.slug}`} className={className}>
+      {body}
     </Link>
   );
 }

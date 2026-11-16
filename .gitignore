@@ -15,6 +15,7 @@
 /test-results/
 /playwright-report/
 /public/python.worker.mjs
+/public/pyodide/
 
 # next.js
 /.next/

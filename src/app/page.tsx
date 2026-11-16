@@ -9,8 +9,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CodePreview } from "@/components/code-preview";
-import { MissionCard } from "@/components/ui";
-import { missions } from "@/content/missions";
+import { ProgressMissionCard } from "@/components/missions/progress-mission-card";
+import { missionSummaries as missions } from "@/content/missions";
 
 const steps = [
   {
@@ -79,8 +79,8 @@ export default function HomePage() {
             <Code2 size={17} />
           </span>
           <p>
-            <strong>Запуск Python доступен.</strong> Исследуй код и выполняй
-            исправления на первом примере. Проверка решений появится позже.
+            <strong>Проверка решений доступна.</strong> Запускай публичные тесты
+            и отправляй исправление на полную проверку.
           </p>
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function HomePage() {
           </div>
           <div className="missions-grid">
             {missions.slice(0, 3).map((mission) => (
-              <MissionCard key={mission.id} mission={mission} />
+              <ProgressMissionCard key={mission.id} mission={mission} />
             ))}
           </div>
           <div className="bottom-note">

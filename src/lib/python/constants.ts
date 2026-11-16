@@ -1,5 +1,5 @@
 export const PYODIDE_VERSION = "314.0.8";
-export const PYODIDE_INDEX_URL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
+export const PYODIDE_INDEX_URL = `/pyodide/v${PYODIDE_VERSION}/`;
 export const MAX_CODE_LENGTH = 30_000;
 export const MAX_OUTPUT_BYTES = 16_384;
 export const MAX_INPUT_LENGTH = 20_000;

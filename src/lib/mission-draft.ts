@@ -9,6 +9,7 @@ export interface MissionDraft {
   code: string;
   selectedLine: number | null;
   hintsUsed: number;
+  submitAttempts: number;
 }
 
 export interface DraftStorage {
@@ -21,7 +22,14 @@ export function draftKey(slug: string): string {
 }
 
 export function createDraft(source: string): MissionDraft {
-  return { version: 1, source, code: source, selectedLine: null, hintsUsed: 0 };
+  return {
+    version: 1,
+    source,
+    code: source,
+    selectedLine: null,
+    hintsUsed: 0,
+    submitAttempts: 0,
+  };
 }
 
 export function parseDraft(raw: string | null, source: string): MissionDraft {
@@ -41,6 +49,10 @@ export function parseDraft(raw: string | null, source: string): MissionDraft {
       version: 1,
       source,
       code: draft.code,
+      submitAttempts:
+        Number.isSafeInteger(draft.submitAttempts) && draft.submitAttempts! >= 0
+          ? draft.submitAttempts!
+          : 0,
       selectedLine: isValidLine(draft.selectedLine ?? null, source)
         ? draft.selectedLine!
         : null,
@@ -99,7 +111,10 @@ export function createDraftStore(
     },
     update(
       change: Partial<
-        Pick<MissionDraft, "code" | "selectedLine" | "hintsUsed">
+        Pick<
+          MissionDraft,
+          "code" | "selectedLine" | "hintsUsed" | "submitAttempts"
+        >
       >,
     ) {
       const draft = { ...snapshot.draft, ...change };
@@ -111,6 +126,9 @@ export function createDraftStore(
       }
       snapshot = { draft, storage };
       listeners.forEach((listener) => listener());
+    },
+    recordSubmission() {
+      this.update({ submitAttempts: snapshot.draft.submitAttempts + 1 });
     },
   };
 }

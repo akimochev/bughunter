@@ -54,8 +54,12 @@ export type Mission = MissionSummary &
     | { contentStatus: "ready"; content: MissionContent }
   );
 
-// Only learner-facing data crosses the server/client boundary.
+// Browser grading needs metadata and tests, while the reference implementation stays author-only.
 export type LearnerMission = MissionSummary & {
+  verification: Pick<
+    MissionContent,
+    "buggyLine" | "hiddenTests" | "explanation"
+  >;
   content: Pick<
     MissionContent,
     | "story"

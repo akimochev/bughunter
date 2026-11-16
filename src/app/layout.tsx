@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
+import { ProgressProvider } from "@/components/progress/progress-provider";
+import { missionSummaries } from "@/content/missions";
 
 export const metadata: Metadata = {
   title: {
@@ -37,11 +39,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <a href="#main" className="skip-link">
             Перейти к содержимому
           </a>
-          <SiteHeader />
-          <main id="main" tabIndex={-1}>
-            {children}
-          </main>
-          <SiteFooter />
+          <ProgressProvider missions={missionSummaries}>
+            <SiteHeader />
+            <main id="main" tabIndex={-1}>
+              {children}
+            </main>
+            <SiteFooter />
+          </ProgressProvider>
         </div>
       </body>
     </html>

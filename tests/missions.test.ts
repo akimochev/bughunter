@@ -58,7 +58,7 @@ describe("контракт миссий", () => {
     });
   }
 
-  it("не передаёт авторские ответы и дополнительные тесты в интерфейс", () => {
+  it("передаёт метаданные браузерной проверки без эталонного решения", () => {
     for (const mission of missions) {
       const learner = toLearnerMission(mission);
       for (const key of [
@@ -69,6 +69,12 @@ describe("контракт миссий", () => {
       ])
         expect(learner.content).not.toHaveProperty(key);
       expect(learner.content.publicTests).toEqual(mission.content.publicTests);
+      expect(learner.verification).toEqual({
+        buggyLine: mission.content.buggyLine,
+        hiddenTests: mission.content.hiddenTests,
+        explanation: mission.content.explanation,
+      });
+      expect(learner.verification).not.toHaveProperty("referenceSolution");
     }
   });
 });

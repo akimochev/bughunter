@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { getMission, missions, toLearnerMission } from "@/content/missions";
 import { TierBadge } from "@/components/ui";
 import { MissionWorkspace } from "@/components/missions/mission-workspace";
+import { MissionAccess } from "@/components/missions/mission-access";
 
 interface MissionPageProps {
   params: Promise<{ slug: string }>;
@@ -38,7 +39,7 @@ export default async function MissionPage({ params }: MissionPageProps) {
         <div>
           <div className="mission-heading-meta">
             <TierBadge tier={mission.tier} />
-            <span className="preview-label">Дело открыто</span>
+            <span className="preview-label">Учебное дело</span>
           </div>
           <h1>{mission.title}</h1>
           <p className="muted">{mission.topic}</p>
@@ -47,10 +48,19 @@ export default async function MissionPage({ params }: MissionPageProps) {
           <ArrowLeft size={16} />К карте дел
         </Link>
       </div>
-      <MissionWorkspace
-        key={mission.slug}
-        mission={toLearnerMission(mission)}
-      />
+      <MissionAccess
+        mission={{
+          id: mission.id,
+          slug: mission.slug,
+          title: mission.title,
+          tier: mission.tier,
+        }}
+      >
+        <MissionWorkspace
+          key={mission.slug}
+          mission={toLearnerMission(mission)}
+        />
+      </MissionAccess>
     </div>
   );
 }

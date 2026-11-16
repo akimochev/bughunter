@@ -38,7 +38,7 @@ scope.onmessage = async ({ data }) => {
           hasReturnValue: false,
           errorType: "LoadError",
           errorMessage:
-            "Не удалось загрузить Python. Проверь интернет и доступность CDN, затем повтори запуск.",
+            "Не удалось загрузить Python. Проверь соединение с сайтом, затем повтори запуск.",
         },
       });
     }

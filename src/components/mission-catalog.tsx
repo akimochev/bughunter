@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { FolderSearch } from "lucide-react";
 import { tiers } from "@/content/mission-tiers";
-import { MissionCard } from "@/components/ui";
+import { ProgressMissionCard } from "@/components/missions/progress-mission-card";
+import { useProgress } from "@/components/progress/progress-provider";
+import { isMissionUnlocked } from "@/lib/progress/rules";
 import type { MissionSummary, MissionTier } from "@/types/mission";
 
 const tierOrder: MissionTier[] = ["beginner", "intermediate", "advanced"];
 
 export function MissionCatalog({ missions }: { missions: MissionSummary[] }) {
   const [filter, setFilter] = useState<MissionTier | "all">("all");
+  const { ready, progress } = useProgress();
   const visibleTiers = filter === "all" ? tierOrder : [filter];
 
   return (
@@ -33,7 +36,12 @@ export function MissionCatalog({ missions }: { missions: MissionSummary[] }) {
           ))}
         </div>
         <span className="catalog-count">
-          <FolderSearch size={16} /> Доступно дел — {missions.length}
+          <FolderSearch size={16} /> Доступно дел —{" "}
+          {ready
+            ? missions.filter((mission) =>
+                isMissionUnlocked(mission, progress, missions),
+              ).length
+            : "…"}
         </span>
       </div>
       <div aria-live="polite">
@@ -51,7 +59,7 @@ export function MissionCatalog({ missions }: { missions: MissionSummary[] }) {
               {missions
                 .filter((mission) => mission.tier === tier)
                 .map((mission) => (
-                  <MissionCard key={mission.id} mission={mission} />
+                  <ProgressMissionCard key={mission.id} mission={mission} />
                 ))}
             </div>
           </section>

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   Code2,
   FileCode2,
@@ -14,10 +14,14 @@ import {
   Square,
 } from "lucide-react";
 import { createDraftStore, MAX_CODE_LENGTH } from "@/lib/mission-draft";
-import { lineSelectionFeedback } from "@/lib/line-selection";
+import { isValidLine, lineSelectionFeedback } from "@/lib/line-selection";
 import type { JsonValue, LearnerMission } from "@/types/mission";
-import { usePythonRunner } from "@/lib/python/use-python-runner";
+import { useSolutionVerifier } from "@/lib/verification/use-solution-verifier";
+import type { CheckKind } from "@/lib/verification/types";
 import { PythonOutput } from "./python-output";
+import { useProgress } from "@/components/progress/progress-provider";
+import { currentSession, isMissionUnlocked } from "@/lib/progress/rules";
+import { MissionSuccess } from "@/components/progress/mission-success";
 
 const PythonEditor = dynamic(
   () => import("@/components/editor/python-editor"),
@@ -50,9 +54,59 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
   const [mode, setMode] = useState<"source" | "edit">("source");
   const [simpleEditor, setSimpleEditor] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmReplay, setConfirmReplay] = useState(false);
+  const {
+    store: progressStore,
+    ready: progressReady,
+    progress,
+    missions,
+  } = useProgress();
+  const missionProgress = progress.missions[mission.id];
+  const session = currentSession(missionProgress);
+  const sessionReady = progressReady && missionProgress?.initialized === true;
+  const hintsUsed = sessionReady ? session.hintsUsed : draft.hintsUsed;
+  useEffect(() => {
+    if (storage !== "pending")
+      progressStore.initialize(mission.id, draft.hintsUsed);
+  }, [storage, progressStore, mission.id, draft.hintsUsed]);
   const sourceLines = content.starterCode.split("\n");
-  const execution = usePythonRunner();
-  const firstExample = content.publicTests[0];
+  const execution = useSolutionVerifier();
+  const selectionValid = isValidLine(draft.selectedLine, content.starterCode);
+
+  function checkSolution(kind: CheckKind) {
+    if (
+      execution.busy ||
+      !sessionReady ||
+      !isMissionUnlocked(mission, progress, missions) ||
+      storage === "pending" ||
+      (kind === "submit" && !selectionValid)
+    )
+      return;
+    const check = {
+      requestId: crypto.randomUUID(),
+      sourceCode: draft.code,
+      functionName: mission.functionName,
+      testCases:
+        kind === "run"
+          ? content.publicTests
+          : [...content.publicTests, ...mission.verification.hiddenTests],
+      kind,
+      selectedLine: kind === "submit" ? draft.selectedLine : null,
+    };
+    const sessionId = missionProgress?.activeSessionId ?? "initial";
+    const started = execution.check(check, (result) =>
+      progressStore.recordOutcome(
+        mission.id,
+        sessionId,
+        hintsUsed,
+        check,
+        result,
+        mission.verification.buggyLine,
+      ),
+    );
+    if (started && kind === "submit") store.recordSubmission();
+    if (started) setMode("edit");
+  }
 
   return (
     <div className="workspace-grid">
@@ -102,13 +156,13 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
         <section className="hints-section" aria-labelledby="hints-heading">
           <h3 id="hints-heading">
             <Lightbulb size={16} />
-            Подсказки <span>{draft.hintsUsed} / 3</span>
+            Подсказки <span>{hintsUsed} / 3</span>
           </h3>
           <p className="hint-intro">
             Открывай по одной, если зашёл в тупик. Использование сохраняется.
           </p>
           <div aria-live="polite">
-            {content.hints.slice(0, draft.hintsUsed).map((hint, index) => (
+            {content.hints.slice(0, hintsUsed).map((hint, index) => (
               <div className="hint-card" key={hint}>
                 <strong>Подсказка {index + 1}</strong>
                 <p>{hint}</p>
@@ -117,12 +171,12 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
           </div>
           <button
             className="button button-secondary"
-            disabled={storage === "pending" || draft.hintsUsed === 3}
-            onClick={() => store.update({ hintsUsed: draft.hintsUsed + 1 })}
+            disabled={!sessionReady || hintsUsed === 3}
+            onClick={() => progressStore.openHint(mission.id)}
           >
-            {draft.hintsUsed === 3
+            {hintsUsed === 3
               ? "Все подсказки открыты"
-              : `Открыть подсказку ${draft.hintsUsed + 1}`}
+              : `Открыть подсказку ${hintsUsed + 1}`}
           </button>
         </section>
       </aside>
@@ -262,7 +316,7 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
             >
               <p>
                 Восстановить исходный код? Изменения в черновике будут удалены.
-                Выбранная строка и открытые подсказки сохранятся.
+                Выбранная строка, подсказки и учитываемые отправки сохранятся.
               </p>
               <button
                 className="button button-secondary"
@@ -285,18 +339,10 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
             <button
               className="button button-secondary"
               disabled={
-                storage === "pending" || execution.busy || !firstExample
+                storage === "pending" || execution.busy || !sessionReady
               }
               aria-describedby="runner-notice"
-              onClick={() => {
-                setMode("edit");
-                execution.run({
-                  requestId: crypto.randomUUID(),
-                  sourceCode: draft.code,
-                  functionName: mission.functionName,
-                  args: firstExample.args,
-                });
-              }}
+              onClick={() => checkSolution("run")}
             >
               <Play size={16} />
               Запустить код
@@ -312,33 +358,97 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
             )}
             <button
               className="button button-primary"
-              disabled
+              disabled={
+                storage === "pending" ||
+                execution.busy ||
+                !selectionValid ||
+                !sessionReady
+              }
               aria-describedby="runner-notice"
+              onClick={() => checkSolution("submit")}
             >
               <Send size={16} />
               Отправить решение
             </button>
           </div>
           <p id="runner-notice" className="runner-notice">
-            Запуск использует текущий черновик и первый пример. Автоматическая
-            проверка решения появится на следующем этапе.
+            Запуск проверяет публичные тесты. Для отправки выбери исходную
+            строку — проверятся также дополнительные тесты. Отправок —{" "}
+            <span data-testid="submit-attempts">{draft.submitAttempts}</span>.{" "}
+            Для награды учтено —{" "}
+            <span data-testid="reward-attempts">{session.attempts}</span>.
           </p>
+          {session.completed && (
+            <div className="replay-controls">
+              <p>
+                Для улучшения результата начни новое прохождение. Черновик и
+                лучший результат сохранятся, подсказки и учитываемые отправки
+                начнутся с нуля.
+              </p>
+              <button
+                className="button button-secondary"
+                disabled={execution.busy}
+                onClick={() => setConfirmReplay(true)}
+              >
+                Пройти заново
+              </button>
+            </div>
+          )}
+          {confirmReplay && (
+            <div
+              className="reset-confirmation"
+              role="group"
+              aria-label="Новое прохождение"
+            >
+              <p>
+                Начать новое прохождение с нулём подсказок и учитываемых
+                отправок?
+              </p>
+              <button
+                className="button button-secondary"
+                onClick={() => {
+                  if (progressStore.startReplay(mission.id)) execution.reset();
+                  setConfirmReplay(false);
+                }}
+              >
+                Начать прохождение
+              </button>
+              <button
+                className="button button-secondary"
+                onClick={() => setConfirmReplay(false)}
+              >
+                Отмена
+              </button>
+            </div>
+          )}
         </section>
         <section className="panel results-panel">
           <div className="panel-title">
             <FlaskConical size={18} />
-            <h2>Результат запуска</h2>
+            <h2>Проверка решения</h2>
           </div>
           <PythonOutput
-            phase={execution.phase}
             request={execution.request}
+            progress={execution.progress}
             result={execution.result}
+            busy={execution.busy}
+            buggyLine={mission.verification.buggyLine}
+            explanation={mission.verification.explanation}
             codeChanged={
               execution.request !== null &&
-              execution.request.sourceCode !== draft.code
+              (execution.request.sourceCode !== draft.code ||
+                (execution.request.kind === "submit" &&
+                  execution.request.selectedLine !== draft.selectedLine))
             }
           />
         </section>
+        {execution.result &&
+          execution.request &&
+          progress.awards[execution.request.requestId] && (
+            <MissionSuccess
+              award={progress.awards[execution.request.requestId]}
+            />
+          )}
       </div>
     </div>
   );

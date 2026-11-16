@@ -527,6 +527,18 @@ export function getMission(slug: string): ReadyMission | undefined {
   return missions.find((mission) => mission.slug === slug);
 }
 
+export const missionSummaries = missions.map(
+  ({ id, slug, title, tier, description, topic, functionName }) => ({
+    id,
+    slug,
+    title,
+    tier,
+    description,
+    topic,
+    functionName,
+  }),
+);
+
 export function toLearnerMission(mission: ReadyMission): LearnerMission {
   const { content } = mission;
   return {
@@ -537,6 +549,11 @@ export function toLearnerMission(mission: ReadyMission): LearnerMission {
     description: mission.description,
     topic: mission.topic,
     functionName: mission.functionName,
+    verification: {
+      buggyLine: content.buggyLine,
+      hiddenTests: content.hiddenTests,
+      explanation: content.explanation,
+    },
     content: {
       story: content.story,
       goal: content.goal,

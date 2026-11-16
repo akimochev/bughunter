@@ -2005,3 +2005,330 @@ h3 {
     padding: 20px 16px;
   }
 }
+.python-output[data-status="passed"] .execution-status {
+  color: #8fdab4;
+}
+.python-output[data-status="failed"] .execution-status {
+  color: #f4a3a3;
+}
+.python-output[data-status="loading"] .execution-status {
+  color: var(--muted);
+}
+.test-result {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 15px;
+  min-width: 0;
+}
+.test-result-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+.test-result-heading h4,
+.additional-tests > h4,
+.accepted-explanation h4 {
+  font-size: 12px;
+  font-weight: 500;
+  color: #d5dcef;
+}
+.test-result-heading > span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.test-result[data-status="passed"] .test-result-heading > span {
+  color: #8fdab4;
+}
+.test-result[data-status="failed"] .test-result-heading > span,
+.test-result[data-status="error"] .test-result-heading > span,
+.test-result[data-status="timeout"] .test-result-heading > span {
+  color: #f4a3a3;
+}
+.test-values {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.test-result .execution-value {
+  margin-block: 12px 0;
+}
+.test-result > .muted {
+  margin-top: 10px;
+  font-size: 11px;
+}
+.additional-tests {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.accepted-explanation {
+  padding: 16px;
+  border: 1px solid #38614f;
+  background: #22c55e08;
+  border-radius: 8px;
+  margin-block: 18px;
+  color: #b5d9c8;
+}
+.accepted-explanation p {
+  margin-top: 10px;
+  line-height: 1.9;
+}
+@media (max-width: 520px) {
+  .test-values {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .test-result {
+    padding: 12px;
+  }
+}
+.progress-storage-notice {
+  padding-block: 13px;
+  color: #edc994;
+  font-size: 12px;
+}
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #e6bd74;
+}
+.mission-card-locked {
+  opacity: 0.72;
+}
+.mission-card-locked:hover {
+  transform: none;
+  border-color: var(--border);
+  background: var(--surface);
+}
+.mission-card-completed {
+  border-color: #3a6658;
+}
+.mission-card .lock-reason {
+  margin-top: -6px;
+  color: #c3b7d9;
+}
+.card-reward {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+  color: #a7d8bf;
+  font-size: 12px;
+}
+.access-panel {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--muted);
+}
+.access-panel svg {
+  color: #b5a0da;
+  margin-inline: auto;
+  margin-bottom: 18px;
+}
+.access-panel h2 {
+  font-size: 23px;
+  color: var(--foreground);
+  margin-bottom: 13px;
+}
+.access-panel p {
+  margin-bottom: 23px;
+}
+.mission-success {
+  padding: 24px;
+  border-color: #3a6658;
+}
+.success-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #9cd6b8;
+  margin-bottom: 20px;
+}
+.success-heading h2 {
+  font-size: 23px;
+  font-weight: 500;
+}
+.mission-success p {
+  margin-block: 14px;
+  font-size: 13px;
+}
+.mission-success .muted {
+  font-size: 11px;
+}
+.mission-success .button {
+  margin-top: 8px;
+}
+.new-achievements {
+  font-size: 12px;
+  color: #ddc28d;
+  line-height: 1.9;
+  padding-left: 18px;
+}
+.replay-controls {
+  border-top: 1px solid var(--border);
+  padding: 18px 20px;
+}
+.replay-controls p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 13px;
+}
+.learning-progress {
+  margin-top: 24px;
+}
+.learning-progress label {
+  font-size: 12px;
+  color: #bcc5db;
+}
+progress {
+  display: block;
+  width: 100%;
+  height: 9px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #263047;
+  accent-color: var(--accent);
+  overflow: hidden;
+}
+progress::-webkit-progress-bar {
+  background: #263047;
+  border-radius: 6px;
+}
+progress::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 6px;
+}
+progress::-moz-progress-bar {
+  background: var(--accent);
+  border-radius: 6px;
+}
+.profile-section {
+  padding: 28px;
+  margin-top: 24px;
+}
+.profile-section > h2 {
+  font-size: 21px;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+.profile-section > h2 span {
+  font-size: 13px;
+  margin-left: 8px;
+}
+.tier-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+.tier-progress-grid h3 {
+  font-size: 15px;
+  font-weight: 500;
+}
+.tier-progress-grid p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 9px;
+}
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.achievement {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  background: #101829;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: #8e9bb8;
+}
+.achievement h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: #c2cbe1;
+}
+.achievement p {
+  font-size: 11px;
+  margin-top: 9px;
+}
+.achievement span {
+  font-size: 10px;
+  display: block;
+  margin-top: 9px;
+}
+.achievement-unlocked {
+  color: #d5b881;
+  border-color: #695938;
+}
+.achievement-unlocked h3 {
+  color: #ebd6b0;
+}
+.completed-missions {
+  display: grid;
+  gap: 12px;
+}
+.completed-missions > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.completed-missions > a:hover {
+  border-color: #8b5cf6;
+}
+.completed-missions h3 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.completed-missions p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 9px;
+}
+.completed-missions > a > div:last-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+  flex-shrink: 0;
+  color: #aad8c0;
+  font-size: 12px;
+}
+.profile-clear {
+  margin-top: 28px;
+}
+.profile-clear .reset-confirmation {
+  margin-top: 18px;
+}
+@media (max-width: 650px) {
+  .tier-progress-grid,
+  .achievements-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .profile-section {
+    padding: 22px 18px;
+  }
+  .completed-missions > a {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 13px;
+  }
+  .completed-missions > a > div:last-child {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 12px;
+  }
+  .mission-success {
+    padding: 22px 18px;
+  }
+}
