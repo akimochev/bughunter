@@ -66,9 +66,15 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
   const sessionReady = progressReady && missionProgress?.initialized === true;
   const hintsUsed = sessionReady ? session.hintsUsed : draft.hintsUsed;
   useEffect(() => {
-    if (storage !== "pending")
+    if (storage !== "pending" && !missionProgress?.initialized)
       progressStore.initialize(mission.id, draft.hintsUsed);
-  }, [storage, progressStore, mission.id, draft.hintsUsed]);
+  }, [
+    storage,
+    progressStore,
+    mission.id,
+    draft.hintsUsed,
+    missionProgress?.initialized,
+  ]);
   const sourceLines = content.starterCode.split("\n");
   const execution = useSolutionVerifier();
   const selectionValid = isValidLine(draft.selectedLine, content.starterCode);

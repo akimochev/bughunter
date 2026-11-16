@@ -33,10 +33,11 @@ export function createProgressStore(
     const loaded = repository.load();
     events = [
       ...new Map(
-        [...loaded.events, ...pending.values()].map((event) => [
-          event.id,
-          event,
-        ]),
+        [
+          ...(loaded.status === "unavailable" ? events : []),
+          ...loaded.events,
+          ...pending.values(),
+        ].map((event) => [event.id, event]),
       ).values(),
     ];
     snapshot = {
@@ -184,6 +185,7 @@ export function createProgressStore(
       try {
         repository.clear();
         pending.clear();
+        events = [];
         refresh();
         notify();
         return true;

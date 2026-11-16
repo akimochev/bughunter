@@ -78,6 +78,14 @@ test("награда 50 → 100 XP, повтор, отмена, сбой заг�
     .getByRole("button", { name: "Начать прохождение", exact: true })
     .click();
   await expect(page.getByTestId("reward-attempts")).toHaveText("0");
+  expect(
+    await page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key)!).totalXp,
+      PROGRESS_KEY,
+    ),
+  ).toBe(50);
+  await page.reload();
+  await expect(page.getByTestId("reward-attempts")).toHaveText("0");
   await expect(
     page.getByRole("heading", { name: "Подсказки 0 / 3" }),
   ).toBeVisible();
@@ -135,6 +143,11 @@ test("URL закрытой миссии и синхронизация откры
   await expect(
     page.getByRole("button", { name: "Отправить решение", exact: true }),
   ).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Уровень пока закрыт", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".cm-editor")).toHaveCount(0);
   const other = await context.newPage();
   await other.goto("/profile");
   await seed(other, [1, 2]);
@@ -164,6 +177,22 @@ test("пять достижений, повреждённый кеш и очис
   page,
 }) => {
   await page.goto("/profile");
+  await page.evaluate(
+    ({ prefix }) => {
+      localStorage.setItem(
+        prefix + "bad-unicode",
+        JSON.stringify({
+          version: 1,
+          kind: "initialize",
+          id: String.fromCharCode(0xd800),
+          missionId: 1,
+          createdAt: new Date(0).toISOString(),
+          hintsUsed: 0,
+        }),
+      );
+    },
+    { prefix: EVENT_PREFIX },
+  );
   await seed(page, [1, 2, 3, 4, 5, 6, 7, 8]);
   await page.evaluate((key) => {
     localStorage.setItem(key, "broken");
@@ -183,4 +212,36 @@ test("пять достижений, повреждённый кеш и очис
   expect(
     await page.evaluate(() => localStorage.getItem("bughunter_draft_v1:keep")),
   ).toBe("draft content");
+});
+
+test("очистка прогресса в другой вкладке не блокирует открытую миссию", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/missions/missing-purchase");
+  await page
+    .getByRole("button", { name: "Открыть подсказку 1", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Подсказки 1 / 3" }),
+  ).toBeVisible();
+  const other = await context.newPage();
+  await other.goto("/profile");
+  await other
+    .getByRole("button", { name: "Очистить прогресс", exact: true })
+    .click();
+  await other
+    .getByRole("button", { name: "Удалить прогресс", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Подсказки 0 / 3" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Запустить код", exact: true }),
+  ).toBeEnabled({ timeout: 5000 });
+  await page.locator("#suspect-line").selectOption("3");
+  await expect(
+    page.getByRole("button", { name: "Отправить решение", exact: true }),
+  ).toBeEnabled();
+  await other.close();
 });

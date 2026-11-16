@@ -29,6 +29,8 @@ export function parseProgressEvent(raw: string): ProgressEvent | null {
       !Number.isFinite(Date.parse(event.createdAt))
     )
       return null;
+    // Invalid UTF-16 must not escape the parser and abort the entire journal load.
+    encodeURIComponent(event.id);
     if (event.kind === "replay") return event;
     if (
       !Number.isInteger(event.hintsUsed) ||
