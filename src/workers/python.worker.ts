@@ -1,6 +1,7 @@
 import type { PyodideInterface } from "pyodide";
 import { MAX_OUTPUT_BYTES, PYODIDE_INDEX_URL } from "@/lib/python/constants";
 import { EXECUTE_SOURCE } from "@/lib/python/execute-source";
+import { TRACE_SOURCE } from "@/lib/trace/trace-source";
 import type {
   PythonOutcome,
   WorkerCommand,
@@ -83,8 +84,18 @@ scope.onmessage = async ({ data }) => {
   runtime.setStderr({ write: capture("stderr") });
   runtime.globals.set("_bughunter_payload_json", JSON.stringify(request));
   try {
+    if (request.mode === "trace")
+      runtime.globals.set("_bughunter_trace_emit", (encoded: string) => {
+        scope.postMessage({
+          type: "trace-step",
+          requestId: currentId,
+          step: JSON.parse(encoded),
+        });
+      });
     const outcome: PythonOutcome = JSON.parse(
-      runtime.runPython(EXECUTE_SOURCE),
+      runtime.runPython(
+        request.mode === "trace" ? TRACE_SOURCE : EXECUTE_SOURCE,
+      ),
     );
     runtime.runPython(
       "import sys as _sys; _sys.stdout.flush(); _sys.stderr.flush()",

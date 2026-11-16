@@ -1,7 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   Code2,
   FileCode2,
@@ -22,6 +28,10 @@ import { PythonOutput } from "./python-output";
 import { useProgress } from "@/components/progress/progress-provider";
 import { currentSession, isMissionUnlocked } from "@/lib/progress/rules";
 import { MissionSuccess } from "@/components/progress/mission-success";
+import { DebugPanel } from "./debug-panel";
+import { useRewardEffects } from "@/components/progress/reward-effects-provider";
+import type { RewardPresentation } from "@/lib/reward-effects";
+import type { MissionDraft } from "@/lib/mission-draft";
 
 const PythonEditor = dynamic(
   () => import("@/components/editor/python-editor"),
@@ -55,6 +65,17 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
   const [simpleEditor, setSimpleEditor] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmReplay, setConfirmReplay] = useState(false);
+  const [presentation, setPresentation] = useState<RewardPresentation | null>(
+    null,
+  );
+  const { effects } = useRewardEffects();
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const {
     store: progressStore,
     ready: progressReady,
@@ -79,6 +100,18 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
   const execution = useSolutionVerifier();
   const selectionValid = isValidLine(draft.selectedLine, content.starterCode);
 
+  function updateDraft(
+    change: Partial<Pick<MissionDraft, "code" | "selectedLine">>,
+  ) {
+    const current = store.getSnapshot().draft;
+    if (
+      (change.code !== undefined && change.code !== current.code) ||
+      ("selectedLine" in change && change.selectedLine !== current.selectedLine)
+    )
+      setPresentation(null);
+    store.update(change);
+  }
+
   function checkSolution(kind: CheckKind) {
     if (
       execution.busy ||
@@ -100,7 +133,8 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
       selectedLine: kind === "submit" ? draft.selectedLine : null,
     };
     const sessionId = missionProgress?.activeSessionId ?? "initial";
-    const started = execution.check(check, (result) =>
+    const started = execution.check(check, (result) => {
+      const before = progressStore.getSnapshot().progress;
       progressStore.recordOutcome(
         mission.id,
         sessionId,
@@ -108,10 +142,25 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
         check,
         result,
         mission.verification.buggyLine,
-      ),
-    );
+      );
+      if (mounted.current) {
+        const confirmed = effects.publish({
+          missionId: mission.id,
+          request: check,
+          currentDraft: store.getSnapshot().draft,
+          before,
+          after: progressStore.getSnapshot().progress,
+          motionAllowed: !window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches,
+        });
+        if (confirmed) setPresentation(confirmed);
+      }
+    });
     if (started && kind === "submit") store.recordSubmission();
-    if (started) setMode("edit");
+    if (started) {
+      setPresentation(null);
+      setMode("edit");
+    }
   }
 
   return (
@@ -220,7 +269,7 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
               value={draft.selectedLine ?? ""}
               disabled={storage === "pending"}
               onChange={(event) =>
-                store.update({
+                updateDraft({
                   selectedLine: event.target.value
                     ? Number(event.target.value)
                     : null,
@@ -263,7 +312,7 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
                   <button
                     key={index}
                     aria-pressed={draft.selectedLine === index + 1}
-                    onClick={() => store.update({ selectedLine: index + 1 })}
+                    onClick={() => updateDraft({ selectedLine: index + 1 })}
                   >
                     <span>{index + 1}</span>
                     <code>{line || " "}</code>
@@ -275,7 +324,7 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
                 className="simple-python-editor"
                 aria-label="Простой редактор исправления Python"
                 value={draft.code}
-                onChange={(event) => store.update({ code: event.target.value })}
+                onChange={(event) => updateDraft({ code: event.target.value })}
                 spellCheck={false}
                 autoCapitalize="off"
                 autoCorrect="off"
@@ -289,9 +338,9 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
               code={mode === "source" ? content.starterCode : draft.code}
               readOnly={mode === "source"}
               selectedOriginalLine={draft.selectedLine}
-              onSelectLine={(line) => store.update({ selectedLine: line })}
+              onSelectLine={(line) => updateDraft({ selectedLine: line })}
               onChange={
-                mode === "edit" ? (code) => store.update({ code }) : undefined
+                mode === "edit" ? (code) => updateDraft({ code }) : undefined
               }
             />
           )}
@@ -327,7 +376,7 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
               <button
                 className="button button-secondary"
                 onClick={() => {
-                  store.update({ code: content.starterCode });
+                  updateDraft({ code: content.starterCode });
                   setConfirmReset(false);
                 }}
               >
@@ -413,7 +462,10 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
               <button
                 className="button button-secondary"
                 onClick={() => {
-                  if (progressStore.startReplay(mission.id)) execution.reset();
+                  if (progressStore.startReplay(mission.id)) {
+                    setPresentation(null);
+                    execution.reset();
+                  }
                   setConfirmReplay(false);
                 }}
               >
@@ -428,6 +480,24 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
             </div>
           )}
         </section>
+        {execution.result &&
+          execution.request &&
+          presentation?.id === execution.request.requestId &&
+          progress.awards[execution.request.requestId] && (
+            <MissionSuccess
+              key={execution.request.requestId}
+              award={progress.awards[execution.request.requestId]}
+              explanation={mission.verification.explanation}
+              presentation={presentation}
+            />
+          )}
+        <DebugPanel
+          key={mission.slug}
+          code={draft.code}
+          functionName={mission.functionName}
+          testCase={content.publicTests[0]}
+          disabled={storage === "pending" || !sessionReady}
+        />
         <section className="panel results-panel">
           <div className="panel-title">
             <FlaskConical size={18} />
@@ -448,13 +518,6 @@ export function MissionWorkspace({ mission }: { mission: LearnerMission }) {
             }
           />
         </section>
-        {execution.result &&
-          execution.request &&
-          progress.awards[execution.request.requestId] && (
-            <MissionSuccess
-              award={progress.awards[execution.request.requestId]}
-            />
-          )}
       </div>
     </div>
   );

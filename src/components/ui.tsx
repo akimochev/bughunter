@@ -67,10 +67,11 @@ export function MissionCard({
     reason: string;
     stars: number;
     xp: number;
+    newlyUnlocked?: boolean;
   };
 }) {
   const Icon = missionIcons[mission.id - 1] ?? Bug;
-  const className = `mission-card card-${mission.tier}${state?.locked ? " mission-card-locked" : ""}${state?.stars ? " mission-card-completed" : ""}`;
+  const className = `mission-card card-${mission.tier}${state?.locked ? " mission-card-locked" : ""}${state?.stars ? " mission-card-completed" : ""}${state?.newlyUnlocked && !state.locked ? " mission-card-newly-unlocked" : ""}`;
   const body = (
     <>
       <div className="mission-card-top">
@@ -90,6 +91,9 @@ export function MissionCard({
       <h3>{mission.title}</h3>
       <p>{mission.description}</p>
       {state?.locked && <p className="lock-reason">{state.reason}</p>}
+      {state?.newlyUnlocked && !state.locked && (
+        <p className="newly-unlocked-label">Новое доступное дело</p>
+      )}
       {Boolean(state?.stars) && (
         <div className="card-reward">
           <StarRating stars={state!.stars} />

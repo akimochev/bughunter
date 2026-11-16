@@ -1,6 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { ProgressEvent } from "../../src/lib/progress/types";
 import {
+  animationsFor,
+  expectRewardEntry,
+  observeRewards,
+} from "./reward-observer";
+import {
   EVENT_PREFIX,
   PROGRESS_KEY,
 } from "../../src/lib/progress/local-repository";
@@ -38,6 +43,8 @@ test("награда 50 → 100 XP, повтор, отмена, сбой заг�
   context,
 }) => {
   test.setTimeout(360_000);
+  await observeRewards(page);
+  await page.clock.install();
   await page.goto("/missions/missing-purchase");
   await page
     .getByRole("button", { name: "2. Исправь код", exact: true })
@@ -58,6 +65,8 @@ test("награда 50 → 100 XP, повтор, отмена, сбой заг�
       PROGRESS_KEY,
     ),
   ).toBe(0);
+  await expect(page.locator(".mission-success")).toHaveCount(0);
+  await expect(page.locator("[data-achievement-notification]")).toHaveCount(0);
   await page
     .getByRole("button", { name: "Открыть подсказку 1", exact: true })
     .click();
@@ -68,9 +77,41 @@ test("награда 50 → 100 XP, повтор, отмена, сбой заг�
     .getByRole("button", { name: "Отправить решение", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Дело пройдено", exact: true }),
+    page.getByRole("heading", { name: "Дело раскрыто!", exact: true }),
   ).toBeVisible();
   await expect(page.getByTestId("xp-delta")).toHaveText("50 XP");
+  const firstReward = await expectRewardEntry(page);
+  await expect
+    .poll(() => animationsFor(page, firstReward))
+    .toContain("reward-particle");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".mission-success")).toHaveAttribute(
+    "data-reward-animated",
+    "false",
+  );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(page.locator(".reward-particles")).toHaveCount(0);
+  await expect(
+    page.locator('[data-achievement-notification="first-case"]'),
+  ).toBeVisible();
+  const storedAfterAward = await page.evaluate(
+    (key) => localStorage.getItem(key),
+    PROGRESS_KEY,
+  );
+  await page.clock.fastForward(10_000);
+  await expect(page.locator(".reward-notifications")).toHaveCount(0);
+  await expect(page.getByTestId("animated-total-xp")).toHaveText("50 XP");
+  const played = await animationsFor(page, firstReward);
+  await page
+    .getByRole("button", { name: "1. Найди строку", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "2. Исправь код", exact: true })
+    .click();
+  expect(await animationsFor(page, firstReward)).toEqual(played);
+  expect(
+    await page.evaluate((key) => localStorage.getItem(key), PROGRESS_KEY),
+  ).toBe(storedAfterAward);
   await page
     .getByRole("button", { name: "Пройти заново", exact: true })
     .click();
@@ -111,10 +152,39 @@ test("награда 50 → 100 XP, повтор, отмена, сбой заг�
     .click();
   await expect(page.getByTestId("xp-delta")).toHaveText("50 XP");
   await expect(page.getByTestId("reward-attempts")).toHaveText("1");
+  await expectRewardEntry(page);
+  await expect(page.locator("[data-achievement-notification]")).toHaveCount(2);
+  await expect(
+    page.locator('[data-achievement-notification="first-case"]'),
+  ).toHaveCount(0);
+  await page.setViewportSize({ width: 375, height: 900 });
+  const notices = page.locator(".reward-notice");
+  const top = await notices.nth(0).boundingBox();
+  const bottom = await notices.nth(1).boundingBox();
+  expect(top && bottom && top.y + top.height <= bottom.y).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.clock.fastForward(2_000);
+  await page
+    .getByRole("heading", { name: "Дело раскрыто!", exact: true })
+    .click();
+  await page.locator(".mission-success").screenshot({
+    path: "test-results/reward-375.png",
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page
     .getByRole("button", { name: "Отправить решение", exact: true })
     .click();
   await expect(page.getByTestId("xp-delta")).toHaveText("0 XP");
+  await expect(page.locator(".reward-particles")).toHaveCount(0);
+  await expect(page.locator("[data-achievement-notification]")).toHaveCount(0);
+  await expect(page.locator(".mission-success")).toContainText(
+    "Лучший результат сохранён",
+  );
   await page.getByRole("link", { name: "Профиль", exact: true }).click();
   await expect(page.getByTestId("total-xp")).toHaveText("100");
   await expect(page.getByTestId("completed-count")).toHaveText("1 / 8");

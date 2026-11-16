@@ -25,6 +25,28 @@ import { tags } from "@lezer/highlight";
 import { MAX_CODE_LENGTH } from "@/lib/mission-draft";
 
 const selectLine = StateEffect.define<number | null>();
+const setTraceLine = StateEffect.define<number | null>();
+const tracedLine = StateField.define<number | null>({
+  create: () => null,
+  update(value, transaction) {
+    for (const effect of transaction.effects)
+      if (effect.is(setTraceLine)) value = effect.value;
+    return value;
+  },
+});
+const traceHighlight = EditorView.decorations.compute(
+  ["doc", tracedLine],
+  (state) => {
+    const line = state.field(tracedLine);
+    if (line === null || line < 1 || line > state.doc.lines)
+      return Decoration.none;
+    return Decoration.set([
+      Decoration.line({ class: "cm-trace-line" }).range(
+        state.doc.line(line).from,
+      ),
+    ]);
+  },
+);
 const selectedLine = StateField.define<number | null>({
   create: () => null,
   update(value, transaction) {
@@ -81,6 +103,10 @@ const theme = EditorView.theme(
       backgroundColor: "#8b5cf624",
       boxShadow: "inset 3px 0 #b89af6",
     },
+    ".cm-trace-line": {
+      backgroundColor: "#22d3ee24",
+      boxShadow: "inset 3px 0 #67e8f9",
+    },
   },
   { dark: true },
 );
@@ -99,6 +125,8 @@ interface PythonEditorProps {
   readOnly?: boolean;
   selectedOriginalLine?: number | null;
   onSelectLine?: (line: number) => void;
+  traceLine?: number | null;
+  label?: string;
 }
 
 export default function PythonEditor({
@@ -107,6 +135,8 @@ export default function PythonEditor({
   readOnly = false,
   selectedOriginalLine = null,
   onSelectLine,
+  traceLine = null,
+  label,
 }: PythonEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView | null>(null);
@@ -130,10 +160,13 @@ export default function PythonEditor({
           drawSelection(),
           keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
           EditorState.readOnly.of(readOnly),
+          EditorView.editable.of(!readOnly),
           EditorView.contentAttributes.of({
-            "aria-label": readOnly
-              ? "Исходный Python-код. Выбери подозрительную строку."
-              : "Редактор исправления Python",
+            "aria-label":
+              label ??
+              (readOnly
+                ? "Исходный Python-код. Выбери подозрительную строку."
+                : "Редактор исправления Python"),
             spellcheck: "false",
             autocapitalize: "off",
             autocorrect: "off",
@@ -154,6 +187,8 @@ export default function PythonEditor({
           }),
           selectedLine,
           lineHighlight,
+          tracedLine,
+          traceHighlight,
           EditorView.domEventHandlers({
             click(event, view) {
               if (!readOnly) return false;
@@ -180,7 +215,7 @@ export default function PythonEditor({
       editor.current = null;
       view.destroy();
     };
-  }, [readOnly]);
+  }, [readOnly, label]);
 
   useEffect(() => {
     const view = editor.current;
@@ -195,6 +230,27 @@ export default function PythonEditor({
       effects: selectLine.of(readOnly ? selectedOriginalLine : null),
     });
   }, [selectedOriginalLine, readOnly]);
+
+  useEffect(() => {
+    const view = editor.current;
+    if (!view) return;
+    const line =
+      traceLine !== null && traceLine >= 1 && traceLine <= view.state.doc.lines
+        ? traceLine
+        : null;
+    view.dispatch({
+      effects: [
+        setTraceLine.of(line),
+        ...(line === null
+          ? []
+          : [
+              EditorView.scrollIntoView(view.state.doc.line(line).from, {
+                y: "nearest",
+              }),
+            ]),
+      ],
+    });
+  }, [traceLine, code, readOnly, label]);
 
   return (
     <div

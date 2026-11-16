@@ -14,10 +14,11 @@ import type {
   WorkerResponse,
 } from "./types";
 
-interface RunnerOptions {
+export interface RunnerOptions {
   createWorker?: () => Worker;
   executionTimeoutMs?: number;
   loadTimeoutMs?: number;
+  onTraceStep?: (step: unknown) => void;
 }
 
 interface ActiveRun {
@@ -65,7 +66,7 @@ export class PythonRunner {
   private readonly executionTimeoutMs: number;
   private readonly loadTimeoutMs: number;
 
-  constructor(options: RunnerOptions = {}) {
+  constructor(private readonly options: RunnerOptions = {}) {
     this.createWorker =
       options.createWorker ??
       (() => {
@@ -158,6 +159,9 @@ export class PythonRunner {
           );
           onPhase("running");
           this.post(active, { type: "execute", request });
+        } else if (message.type === "trace-step") {
+          if (request.mode === "trace")
+            this.options.onTraceStep?.(message.step);
         } else if (message.type === "output") {
           const bytes = new TextEncoder().encode(message.text);
           const remaining = MAX_OUTPUT_BYTES - active.outputBytes;

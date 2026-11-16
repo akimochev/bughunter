@@ -15,6 +15,7 @@ import { StarRating } from "./star-rating";
 import { achievements, isMissionUnlocked } from "@/lib/progress/rules";
 import { tiers } from "@/content/mission-tiers";
 import type { MissionTier } from "@/types/mission";
+import { ProgressMeter } from "./progress-meter";
 
 export function ProfileProgress() {
   const { ready, progress, missions, store } = useProgress();
@@ -71,12 +72,12 @@ export function ProfileProgress() {
           </div>
         </div>
         <div className="learning-progress">
-          <label htmlFor="learning-progress">
+          <p className="learning-progress-label">
             Общий прогресс — {progress.completedCount} из {missions.length}{" "}
             миссий
-          </label>
-          <progress
-            id="learning-progress"
+          </p>
+          <ProgressMeter
+            label="Общий прогресс обучения"
             value={progress.completedCount}
             max={missions.length}
           />
@@ -105,10 +106,10 @@ export function ProfileProgress() {
                     {unlocked ? "Уровень открыт" : "Уровень заблокирован"} ·{" "}
                     {done} / {group.length}
                   </p>
-                  <progress
+                  <ProgressMeter
                     value={done}
                     max={group.length}
-                    aria-label={`Прогресс уровня «${tiers[tier].label}»`}
+                    label={`Прогресс уровня «${tiers[tier].label}»`}
                   />
                 </div>
               );

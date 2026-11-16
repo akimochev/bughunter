@@ -5,6 +5,7 @@ export interface PythonRunRequest {
   sourceCode: string;
   functionName: string;
   args: JsonValue[];
+  mode?: "trace";
 }
 
 export type PythonOutcome =
@@ -21,6 +22,7 @@ export type PythonOutcome =
       returnValue?: never;
       errorType: string;
       errorMessage: string;
+      errorLine?: number;
     };
 
 export type PythonRunResult = PythonOutcome & {
@@ -36,6 +38,7 @@ export type WorkerCommand =
 
 export type WorkerResponse =
   | { type: "ready"; requestId: string }
+  | { type: "trace-step"; requestId: string; step: unknown }
   | {
       type: "output";
       requestId: string;

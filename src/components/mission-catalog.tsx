@@ -48,6 +48,7 @@ export function MissionCatalog({ missions }: { missions: MissionSummary[] }) {
         {visibleTiers.map((tier) => (
           <section
             key={tier}
+            id={`level-${tier}`}
             className="catalog-group"
             aria-label={tiers[tier].label}
           >

@@ -15,6 +15,7 @@ import {
 import { createProgressStore } from "@/lib/progress/store";
 import type { ProgressStore } from "@/lib/progress/store";
 import type { ProgressMission } from "@/lib/progress/types";
+import { RewardEffectsProvider } from "./reward-effects-provider";
 
 const ProgressContext = createContext<{
   store: ProgressStore;
@@ -44,8 +45,10 @@ export function ProgressProvider({
   }, [store]);
   return (
     <ProgressContext.Provider value={{ store, missions }}>
-      <ProgressStorageNotice />
-      {children}
+      <RewardEffectsProvider missions={missions}>
+        <ProgressStorageNotice />
+        {children}
+      </RewardEffectsProvider>
     </ProgressContext.Provider>
   );
 }
